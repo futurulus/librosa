@@ -72,7 +72,7 @@ def test_load_soundfile():
 
 def test_load_audioread():
     fname = os.path.join("tests", "data", "test1_44100.wav")
-    
+
     # Load using an existing audioread object
     reader = audioread.rawread.RawAudioFile(fname)
     y, sr = librosa.load(reader, sr=None)
@@ -700,7 +700,32 @@ def test_magphase(y_22050):
 
     S, P = librosa.magphase(D)
 
+    assert S.dtype is y_22050.dtype  # float
+    assert P.dtype is D.dtype  # complex
+    assert np.allclose(np.abs(P), 1.0)
     assert np.allclose(S * P, D)
+
+
+def test_magphase_zero():
+
+    D = np.zeros((128, 128), dtype=np.complex64)
+    S, P = librosa.magphase(D)
+
+    assert S.dtype is np.dtype("float32")
+    assert P.dtype is np.dtype("complex64")
+    assert np.allclose(S, 0)
+    assert np.allclose(P, 1+0j)
+
+
+def test_magphase_denormalized():
+
+    D = 1.0e-42j * np.ones((128, 128), dtype=np.complex64)
+    S, P = librosa.magphase(D)
+
+    assert S.dtype is np.dtype("float32")
+    assert P.dtype is np.dtype("complex64")
+    assert np.allclose(S, 1.0e-42)
+    assert np.allclose(P, 0+1j)
 
 
 @pytest.fixture(scope="module", params=[22050, 44100])
@@ -1223,7 +1248,7 @@ def test__spectrogram(y_22050, n_fft, hop_length, power):
     # And only the spectrogram but with incorrect n_fft
     S_, n_fft_ = librosa.core.spectrum._spectrogram(S=S, n_fft=2 * n_fft, power=power)
     assert np.allclose(S, S_)
-    
+
     assert np.allclose(2 * (S.shape[-2] - 1), n_fft_)
 
 
